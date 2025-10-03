@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>re Match — Find Your re Match</title>
+  <meta name="description" content="A 3-question aura-style quiz to find your re match." />
+  <style>
+    :root{
+      --bg:#111218; --bg-2:#131521; --card:#171827; --muted:#bac0d0; --text:#ffffff;
+      --accent:#f9a8d4; --accent-2:#22d3ee; --radius:18px; --link:#7dd3fc;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1100px 520px at 100% 0%, rgba(249,168,212,.15), transparent 70%), radial-gradient(900px 400px at 0% 100%, rgba(34,211,238,.12), transparent 70%), linear-gradient(180deg, var(--bg-2), var(--bg));
+      display:flex; align-items:center; justify-content:center; padding:22px;
+    }
+    a{color:var(--link); text-decoration:none} a:hover{text-decoration:underline}
+    .app{width:100%; max-width:820px}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:var(--radius); padding:20px 20px 18px 20px;
+      box-shadow:0 12px 36px rgba(0,0,0,.35);
+      backdrop-filter: blur(8px);
+    }
+    .title{font-weight:800; letter-spacing:-0.02em; line-height:1.05; font-size: clamp(26px, 5vw, 38px); margin:8px 0 4px 0;}
+    .muted{color:var(--muted)}
+    .btn{width:100%; appearance:none; border:0; border-radius:14px; padding:14px 16px; font-weight:700; cursor:pointer;
+      background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#001018; box-shadow:0 10px 24px rgba(34,211,238,.25), inset 0 0 0 1px rgba(255,255,255,.2);}
+    .btn:active{transform: translateY(1px)}
+    .choices{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px}
+    .choice{padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:#1c1d2e; cursor:pointer; text-align:center; font-weight:700; color:#ffffff}
+    .choice:hover{outline:2px solid var(--accent); background:linear-gradient(180deg, rgba(249,168,212,.14), rgba(255,255,255,.03))}
+    .choice[aria-pressed="true"]{outline:2px solid var(--accent-2); background:linear-gradient(180deg, rgba(34,211,238,.18), rgba(255,255,255,.04))}
+    .row{display:flex; gap:12px; align-items:center; justify-content:space-between}
+    .badge{display:inline-flex; align-items:center; gap:8px; background:#16172a; border:1px solid rgba(255,255,255,.12); padding:8px 12px; border-radius:999px}
+    .pill{padding:6px 10px; border-radius:999px; background:#131426; border:1px solid rgba(255,255,255,.12); font-size:12px}
+    .hidden{display:none}
+    .share{display:flex; gap:10px; flex-wrap:wrap}
+    .header{display:flex; align-items:center; gap:12px; justify-content:space-between; margin-bottom:10px}
+    .brand{display:flex; align-items:center; gap:10px}
+    .brand img{height:42px; width:auto}
+    .mascotQ{display:flex; gap:12px; align-items:center; margin:8px 0 4px 0}
+    .mascotQ img{width:64px; height:64px; border-radius:16px; border:1px solid rgba(255,255,255,.12); object-fit:cover}
+    .questionText{font-size:18px; font-weight:800}
+    .result-top{display:flex; gap:14px; align-items:center; margin:8px 0 10px 0}
+    .avatar{width:80px; height:80px; border-radius:999px; border:1px solid rgba(255,255,255,.15); background:#0f0f13; object-fit:cover}
+    .avatar-wrap{position:relative}
+    .avatar-fallback{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:800; letter-spacing:0.5px; color:#e5e7eb}
+    .role-mascot{width:48px; height:48px; border-radius:12px; border:1px solid rgba(255,255,255,.12); object-fit:cover; margin-left:6px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card" id="screen-intro">
+      <div class="header">
+        <div class="brand">
+          <img src="assets/logo.png" alt="re logo" />
+          <div class="badge"><span>🔮</span><span>re Match</span></div>
+        </div>
+      </div>
+      <h1 class="title">Find your <span style="background:linear-gradient(135deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent;">re match</span></h1>
+      <p class="muted">Answer 3 quick questions. Get paired with a random community member. Share your match.</p>
+      <button class="btn" id="start-btn">Start</button>
+    </div>
+
+    <div class="card hidden" id="screen-quiz">
+      <div class="row"><div class="badge">Q<span id="qIdx">1</span>/3</div><div class="pill muted" id="progress">0% complete</div></div>
+      <div class="mascotQ">
+        <img id="mascot" src="assets/mascot_blob.png" alt="mascot" />
+        <div class="questionText" id="question-text"></div>
+      </div>
+      <div class="choices" id="choices"></div>
+      <button class="btn" id="next-btn" disabled>Next</button>
+    </div>
+
+    <div class="card hidden" id="screen-result">
+      <div class="row">
+        <div class="badge" id="role-badge">📢 Yapper</div>
+        <img id="role-mascot" class="role-mascot" src="" alt="role mascot"/>
+        <div class="pill" id="match-pill">randomized</div>
+      </div>
+      <div class="result-top">
+        <div class="avatar-wrap">
+          <img id="avatar" class="avatar" alt="Profile picture" />
+          <div id="avatar-fallback" class="avatar-fallback"></div>
+        </div>
+        <div>
+          <h2 id="result-line" style="margin:0 0 6px 0"></h2>
+          <div class="muted" id="result-sub" style="margin:0 0 4px 0"></div>
+          <a id="match-link" href="#" target="_blank" rel="noopener" class="muted">Visit profile ↗</a>
+        </div>
+      </div>
+      <div class="share" style="margin-top:10px">
+        <button class="btn" id="share-btn" style="flex:1">Share on X</button>
+        <button class="choice" id="retry-btn" style="flex:1; font-weight:700">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== Configuration ======
+    const GAME_URL = "YOUR_GAME_URL_HERE"; // replace when deployed
+    const unavatarTwitter = (u) => `https://unavatar.io/twitter/${encodeURIComponent(u)}`;
+    const unavatarX = (u) => `https://unavatar.io/x/${encodeURIComponent(u)}`;
+
+    // Mascot mapping: Astronaut -> Hacker, Blob -> Yapper, Logo -> Farmer & Staker
+    const ROLE_MASCOT = {
+      farmer: "assets/logo.png",
+      staker: "assets/logo.png",
+      yapper: "assets/mascot_blob.png",
+      hacker: "assets/mascot_astronaut.png",
+    };
+
+    const HANDLES = [
+      "ChazEevee","GlobeCryptoz","Timmy_Turnes","norektguy","0xbliink","fayl1ze","dospichhh","Markestolle",
+      "badjonone","puselol","sqw11z33","d1ce_eth","foxs_sinofgreed","g11dentak","ClashXoma68937","Markestolle",
+      "cryptozen99","lechi99999","sxcarexxx","0xIrina","Pashoke1","glebaagleb","stepaks576","KL3r1qNFT",
+      "wtf4uk","0xbliink","lumincrypto","realsirandrew","sirindel","shinori_san","KuddyKuddls","cryptowluha",
+      "1Asgore1","summerchon3","ruhi_1443","lovecrypto07","wolverine4114","PFalatuk1","thefinished_1","sqw11z33",
+      "zhukv197","Iampreshiouz","CroketCoin","iam_panda007","Seagcz","baebaeHyk","raiji37","norektguy",
+      "m4lkxx","solnechn1y","0xSimox","Qurool13","dospichhh","realsirandrew","shinori_san","syowro","DaIIas777",
+      "el1zy616","sparcrpt","alssoee","zar_batyshka","lumincrypto","ponta_kokemomo","st3phdoteth","natalieevagray",
+      "ContraryActuary","karnsaroy","benaneesh","rslavk0","ally_mayre","Oyenmaa","0xUnemployment","solnechn1y",
+      "benaneesh","dimakuncik","miketwinks","sscorpy_","Icheyi","thefinished_1","thecliffwhite","Limb0NFT",
+      "0xLync","dimoflexx","OluwaseyiSOL","SaiMoo_n","unicodef1wn","SeyiXnox","thekasik","crypto_yanok","zerqfer","lumincrypto"
+    ].map(h => h.replace(/^@/,""));
+    const UNIQUE_HANDLES = [...new Set(HANDLES)];
+
+    // Questions: themed mascots per screen
+    const QUESTIONS = [
+      { text: "Which re role feels most like you?",
+        mascot: "assets/logo.png",
+        options:[
+          {label:"🌾 Farmer", role:"farmer"},
+          {label:"💎 Staker", role:"staker"},
+          {label:"📢 Yapper", role:"yapper"},
+          {label:"🕶️ Hacker", role:"hacker"},
+        ]},
+      { text: "What’s your community vibe?",
+        mascot: "assets/mascot_blob.png",
+        options:[
+          {label:"🚀 Hyper", role:"yapper"},
+          {label:"😎 Chill", role:"farmer"},
+          {label:"📚 Smart", role:"staker"},
+          {label:"😂 Meme", role:"yapper"},
+        ]},
+      { text: "Where would you hang out?",
+        mascot: "assets/mascot_astronaut.png",
+        options:[
+          {label:"🏡 Farm", role:"farmer"},
+          {label:"⛪ Shrine", role:"staker"},
+          {label:"💬 Comms", role:"yapper"},
+          {label:"💻 Terminal", role:"hacker"},
+        ]},
+    ];
+
+    const ROLE_META = {
+      farmer:{emoji:"🌾", title:"Farmer", room:"Farm"},
+      staker:{emoji:"💎", title:"Staker", room:"Shrine"},
+      yapper:{emoji:"📢", title:"Yapper", room:"Comms"},
+      hacker:{emoji:"🕶️", title:"Hacker", room:"Terminal"},
+    };
+
+    const memoryKey = "re_match_recent_handles";
+    function rememberHandle(h){
+      const list = JSON.parse(sessionStorage.getItem(memoryKey) || "[]");
+      list.push(h);
+      const N = Math.max(8, Math.floor(UNIQUE_HANDLES.length * 0.15));
+      sessionStorage.setItem(memoryKey, JSON.stringify(list.slice(-N)));
+    }
+    function recentlyShown(){
+      try { return new Set(JSON.parse(sessionStorage.getItem(memoryKey) || "[]")); }
+      catch { return new Set(); }
+    }
+    function pickRandomHandle(){
+      const recent = recentlyShown();
+      const pool = UNIQUE_HANDLES.filter(h => !recent.has(h));
+      const base = (pool.length ? pool : UNIQUE_HANDLES);
+      const choice = base[Math.floor(Math.random()*base.length)];
+      rememberHandle(choice);
+      return choice;
+    }
+
+    // Prefetch avatar on Q2
+    let prefetchedHandle = null;
+    let prefetchedImage = null;
+    function prefetchAvatarFor(handle){
+      const u = handle.replace(/^@/,"");
+      const img = new Image();
+      img.src = unavatarTwitter(u);
+      img.onerror = ()=>{ img.src = unavatarX(u); };
+      prefetchedImage = img;
+    }
+
+    const state = { qIndex:0, scores:{farmer:0,staker:0,yapper:0,hacker:0}, selections:[] };
+
+    const introScreen = document.getElementById("screen-intro");
+    const quizScreen = document.getElementById("screen-quiz");
+    const resultScreen = document.getElementById("screen-result");
+    const qIdxEl = document.getElementById("qIdx");
+    const progressEl = document.getElementById("progress");
+    const questionText = document.getElementById("question-text");
+    const mascotImg = document.getElementById("mascot");
+    const choicesEl = document.getElementById("choices");
+    const nextBtn = document.getElementById("next-btn");
+    const startBtn = document.getElementById("start-btn");
+    const roleBadge = document.getElementById("role-badge");
+    const resultLine = document.getElementById("result-line");
+    const matchPill = document.getElementById("match-pill");
+    const shareBtn = document.getElementById("share-btn");
+    const retryBtn = document.getElementById("retry-btn");
+    const avatarEl = document.getElementById("avatar");
+    const avatarFallback = document.getElementById("avatar-fallback");
+    const matchLink = document.getElementById("match-link");
+    const resultSub = document.getElementById("result-sub");
+    const roleMascotImg = document.getElementById("role-mascot");
+
+    function show(el){ el.classList.remove("hidden"); }
+    function hide(el){ el.classList.add("hidden"); }
+
+    function start(){
+      state.qIndex = 0;
+      state.scores = {farmer:0, staker:0, yapper:0, hacker:0};
+      state.selections = [];
+      prefetchedHandle = null;
+      prefetchedImage = null;
+      hide(introScreen); hide(resultScreen); show(quizScreen);
+      renderQuestion();
+    }
+
+    function renderQuestion(){
+      const q = QUESTIONS[state.qIndex];
+      qIdxEl.textContent = (state.qIndex + 1).toString();
+      progressEl.textContent = Math.round((state.qIndex/QUESTIONS.length)*100)+"% complete";
+      questionText.textContent = q.text;
+      mascotImg.src = q.mascot;
+      choicesEl.innerHTML = "";
+      nextBtn.disabled = true;
+
+      q.options.forEach((opt, i)=>{
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.setAttribute("aria-pressed","false");
+        btn.textContent = opt.label;
+        btn.onclick = ()=>{
+          [...choicesEl.children].forEach(c=>c.setAttribute("aria-pressed","false"));
+          btn.setAttribute("aria-pressed","true");
+          nextBtn.disabled = false;
+          state.selections[state.qIndex] = i;
+        };
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    function next(){
+      const q = QUESTIONS[state.qIndex];
+      const selIndex = state.selections[state.qIndex];
+      if (selIndex == null){ return; }
+      const chosen = q.options[selIndex];
+      state.scores[chosen.role]++;
+
+      state.qIndex++;
+      if (state.qIndex === 1 && !prefetchedHandle){
+        prefetchedHandle = pickRandomHandle();
+        prefetchAvatarFor(prefetchedHandle);
+      }
+
+      if (state.qIndex < QUESTIONS.length){
+        renderQuestion();
+      } else {
+        finish();
+      }
+    }
+
+    function dominantRole(scores){
+      const entries = Object.entries(scores).sort((a,b)=> b[1]-a[1]);
+      const max = entries[0][1];
+      const tied = entries.filter(([_,v])=>v===max).map(([k])=>k);
+      return tied[Math.floor(Math.random()*tied.length)];
+    }
+
+    function setAvatar(handle){
+      const u = handle.replace(/^@/,"");
+      avatarFallback.textContent = u.slice(0,2).toUpperCase();
+      if (prefetchedHandle === u && prefetchedImage){
+        avatarEl.src = prefetchedImage.src;
+      } else {
+        avatarEl.src = unavatarTwitter(u);
+      }
+      avatarEl.onerror = () => { avatarEl.src = unavatarX(u); };
+    }
+
+    function finish(){
+      const role = dominantRole(state.scores);
+      const meta = ROLE_META[role];
+      const handle = prefetchedHandle || pickRandomHandle();
+      const room = meta.room;
+
+      roleBadge.textContent = meta.emoji+" "+meta.title;
+      roleMascotImg.src = ROLE_MASCOT[role] || "assets/logo.png";
+
+      const atHandle = "@"+handle;
+      const line = `Your re aura aligns with ${atHandle} – together you’d crush the ${room}.`;
+      resultLine.textContent = line;
+      matchPill.textContent = "Matched: "+atHandle;
+      resultSub.textContent = "Click the link to view their X profile.";
+      setAvatar(handle);
+
+      const profileUrl = `https://x.com/${encodeURIComponent(handle)}`;
+      matchLink.href = profileUrl;
+      matchLink.textContent = `Visit ${atHandle} on X ↗`;
+
+      hide(quizScreen); show(resultScreen);
+
+      shareBtn.onclick = ()=>{
+        const text = encodeURIComponent(`I matched with ${atHandle} in the re Match game 🔮 Who’s your re match?`);
+        const url = encodeURIComponent(GAME_URL || location.href);
+        const intent = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+        window.open(intent, "_blank");
+      };
+    }
+
+    startBtn.addEventListener("click", start);
+    nextBtn.addEventListener("click", next);
+    retryBtn.addEventListener("click", ()=>{ hide(resultScreen); show(introScreen); });
+  </script>
+</body>
+</html>
